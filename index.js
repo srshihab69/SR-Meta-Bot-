@@ -69,7 +69,7 @@ const strings = {
         `🤖 Status: <b>Online</b>\n` +
         `🕒 Uptime: <b>Always Active</b>\n` +
         `📂 Stored Media: <code>${mediaCount} items</code>\n` +
-        `⚙️ Node.js: <code>${process.version}</code></blockquote>`,
+        `⚙️ Version: <code>${process.version}</code></blockquote>`,
 
     id_err: 
         `<blockquote>❌ <b>Command Error</b></blockquote>\n\n` +
