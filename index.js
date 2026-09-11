@@ -61,7 +61,7 @@ const strings = {
         ` · Forward from channels to get channel ID\n` +
         ` · Type @username anywhere — no command needed!</blockquote>\n\n` +
         `<blockquote>📞 Support: @srshihab69\n` +
-        `🛠️ Made with ❤️ by @NexGen_Community</blockquote>`,
+        `🛠️ Made with ❤️ by @sr_shihab69</blockquote>`,
 
     stat: (mediaCount, lat) => 
         `<blockquote>📊 <b>Bot Statistics & Status</b></blockquote>\n\n` +
