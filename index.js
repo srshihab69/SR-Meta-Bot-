@@ -38,7 +38,7 @@ const strings = {
         ` · /sr69 - Trigger media lookup via shared link\n` +
         ` · /help - Show this help menu\n` +
         ` · /id @username - Get ID by username\n` +
-        ` · /ping - Check latency & status</blockquote>\n\n` +
+        ` · /stat - Check latency & status</blockquote>\n\n` +
         `<blockquote expandable>📱 <b>Keyboard Buttons:</b>\n` +
         ` · 👤 User Info - Get any user's ID\n` +
         ` · 🆔 My Info - Get your own ID details\n` +
@@ -63,8 +63,8 @@ const strings = {
         `<blockquote>📞 Support: @srshihab69\n` +
         `🛠️ Made with ❤️ by @NexGen_Community</blockquote>`,
 
-    ping: (lat) => 
-        `<blockquote>♻️ <b>Correct latency & status-</b></blockquote>\n\n` +
+    stat: (lat) => 
+        `<blockquote>♻️ <b>System Status & Latency</b></blockquote>\n\n` +
         `<blockquote>⚡ Latency: <code>${lat}ms</code>\n` +
         `🕒 Uptime: <b>Always Active</b>\n` +
         `🤖 Status: <b>Online</b></blockquote>`,
@@ -95,12 +95,13 @@ const mainKeyboard = {
     parse_mode: 'HTML'
 };
 
-// Express route for browser media viewer with a view layout and download button
+// Express route for browser media viewer with robust Telegram file URL generation
 app.get('/sr/:filename', async (req, res) => {
     const filename = req.params.filename;
-    const mediaData = mediaStore.get(filename);
+    let mediaData = mediaStore.get(filename);
 
-    if (!mediaData || !mediaData.url) {
+    // If media not found in map (due to serverless restart), let's attempt to reconstruct if file_id format allows, or show error
+    if (!mediaData || !mediaData.fileId) {
         return res.status(404).send(`
             <!DOCTYPE html>
             <html>
@@ -116,21 +117,29 @@ app.get('/sr/:filename', async (req, res) => {
             <body>
                 <div class="container">
                     <h3>❌ Link Expired or Not Found</h3>
-                    <p>This media link has expired or is invalid. Please send the link/media to the bot again to get a fresh link.</p>
+                    <p>This media link has expired or server restarted. Please send the media to the bot again to get a fresh link.</p>
                 </div>
             </body>
             </html>
         `);
     }
 
+    // Refresh direct Telegram file URL dynamically in case old token path expired
+    let mediaUrl = mediaData.url;
+    try {
+        const fileInfo = await bot.getFile(mediaData.fileId);
+        if (fileInfo && fileInfo.file_path) {
+            mediaUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
+        }
+    } catch (e) {}
+
     const fileType = mediaData.fileType;
-    const mediaUrl = mediaData.url;
 
     let mediaHtml = '';
     if (fileType === 'photo' || fileType === 'sticker' || fileType === 'gif') {
-        mediaHtml = `<img src="${mediaUrl}" alt="Media Viewer" style="max-width: 100%; max-height: 60vh; border-radius: 8px; object-fit: contain;" />`;
+        mediaHtml = `<img src="${mediaUrl}" alt="Media Viewer" style="max-width: 100%; max-height: 65vh; border-radius: 8px; object-fit: contain;" />`;
     } else if (fileType === 'video') {
-        mediaHtml = `<video src="${mediaUrl}" controls autoplay style="max-width: 100%; max-height: 60vh; border-radius: 8px; outline: none;"></video>`;
+        mediaHtml = `<video src="${mediaUrl}" controls autoplay style="max-width: 100%; max-height: 65vh; border-radius: 8px; outline: none;"></video>`;
     } else if (fileType === 'audio' || fileType === 'voice') {
         mediaHtml = `<audio src="${mediaUrl}" controls autoplay style="width: 100%; margin: 20px 0;"></audio>`;
     } else {
@@ -225,7 +234,9 @@ app.post(`/api/webhook`, async (req, res) => {
         const chatId = msg.chat.id;
         const text = msg.text || msg.caption || "";
         const entities = (msg.entities || []).concat(msg.caption_entities || []);
-        const hostUrl = process.env.RENDER_EXTERNAL_URL || `http://${req.get('host')}`;
+        
+        // Correctly capture hostUrl for Vercel deployment
+        const hostUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.RENDER_EXTERNAL_URL || `http://${req.get('host')}`);
 
         // Handle /start with deep link payload (e.g., /start sr69_xxxx)
         if (text.startsWith('/start')) {
@@ -258,9 +269,9 @@ app.post(`/api/webhook`, async (req, res) => {
         else if (text === '/help') {
             await bot.sendMessage(chatId, strings.help, { parse_mode: 'HTML' });
         }
-        else if (text === '/ping') {
+        else if (text === '/stat') {
             const latency = Math.floor(Math.random() * 10) + 40;
-            await bot.sendMessage(chatId, strings.ping(latency), { parse_mode: 'HTML' });
+            await bot.sendMessage(chatId, strings.stat(latency), { parse_mode: 'HTML' });
         }
         else if (text.startsWith('/id')) {
             const args = text.split(' ');
@@ -300,7 +311,7 @@ app.post(`/api/webhook`, async (req, res) => {
                 await bot.sendMessage(chatId, `<blockquote>🔍 <b>Shared User Info</b></blockquote>\n\n<blockquote>🆔 ID: <code>${userId}</code>\n⚠️ Details restricted.</blockquote>`, { parse_mode: 'HTML' });
             }
         }
-        else if (text.includes(`${hostUrl}/sr/`)) {
+        else if (text.includes(`/sr/`)) {
             const trimmedLink = text.trim();
             const filename = trimmedLink.split('/sr/')[1]?.split(' ')[0];
             const mediaData = mediaStore.get(filename);
