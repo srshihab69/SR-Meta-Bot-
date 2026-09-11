@@ -38,7 +38,7 @@ const strings = {
         ` · /sr69 - Trigger media lookup via shared link\n` +
         ` · /help - Show this help menu\n` +
         ` · /id @username - Get ID by username\n` +
-        ` · /ping - Check latency & status</blockquote>\n\n` +
+        ` · /stat - Check bot statistics & status</blockquote>\n\n` +
         `<blockquote expandable>📱 <b>Keyboard Buttons:</b>\n` +
         ` · 👤 User Info - Get any user's ID\n` +
         ` · 🆔 My Info - Get your own ID details\n` +
@@ -63,11 +63,12 @@ const strings = {
         `<blockquote>📞 Support: @srshihab69\n` +
         `🛠️ Made with ❤️ by @NexGen_Community</blockquote>`,
 
-    ping: (lat) => 
-        `<blockquote>♻️ <b>Correct latency & status-</b></blockquote>\n\n` +
-        `<blockquote>⚡ Latency: <code>${lat}ms</code>\n` +
+    stat: (mediaCount) => 
+        `<blockquote>📊 <b>Bot Statistics & Status</b></blockquote>\n\n` +
+        `<blockquote>🤖 Status: <b>Online</b>\n` +
         `🕒 Uptime: <b>Always Active</b>\n` +
-        `🤖 Status: <b>Online</b></blockquote>`,
+        `📂 Stored Media: <code>${mediaCount} items</code>\n` +
+        `⚙️ Node.js: <code>${process.version}</code></blockquote>`,
 
     id_err: 
         `<blockquote>❌ <b>Command Error</b></blockquote>\n\n` +
@@ -258,9 +259,8 @@ app.post(`/api/webhook`, async (req, res) => {
         else if (text === '/help') {
             await bot.sendMessage(chatId, strings.help, { parse_mode: 'HTML' });
         }
-        else if (text === '/ping') {
-            const latency = Math.floor(Math.random() * 10) + 40;
-            await bot.sendMessage(chatId, strings.ping(latency), { parse_mode: 'HTML' });
+        else if (text === '/stat') {
+            await bot.sendMessage(chatId, strings.stat(mediaStore.size), { parse_mode: 'HTML' });
         }
         else if (text.startsWith('/id')) {
             const args = text.split(' ');
