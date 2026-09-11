@@ -5,9 +5,8 @@ const bodyParser = require('body-parser');
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token);
 
-// 🔥 APNA VERCEL DOMAIN YAHAN DAALO (Jaise: https://tg-meta69.vercel.app)
-// Agar env variable me set nahi hai toh ye fallback use hoga
-const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || '';
+// 🔥 Domain hardcode kore dilam, ekhon ar kichu set korte hobe na
+const CUSTOM_DOMAIN = 'http://premium-emoji-bog.vercel.app';
 
 let botUsername = process.env.BOT_USERNAME || '';
 bot.getMe().then(me => {
@@ -94,7 +93,6 @@ const mainKeyboard = {
     parse_mode: 'HTML'
 };
 
-// Express route for browser media viewer
 app.get('/sr/:filename', async (req, res) => {
     const filename = req.params.filename;
     let mediaData = mediaStore.get(filename);
@@ -231,18 +229,7 @@ app.post(`/api/webhook`, async (req, res) => {
         const text = msg.text || msg.caption || "";
         const entities = (msg.entities || []).concat(msg.caption_entities || []);
         
-        // Force use of custom domain or production domain to avoid vercel sso preview login prompt
         let hostUrl = CUSTOM_DOMAIN;
-        if (!hostUrl) {
-            if (process.env.VERCEL_URL) {
-                hostUrl = `https://${process.env.VERCEL_URL}`;
-            } else if (process.env.RENDER_EXTERNAL_URL) {
-                hostUrl = process.env.RENDER_EXTERNAL_URL;
-            } else {
-                const proto = req.headers['x-forwarded-proto'] || req.protocol;
-                hostUrl = `${proto}://${req.get('host')}`;
-            }
-        }
 
         if (text.startsWith('/start')) {
             const parts = text.split(' ');
