@@ -29,10 +29,10 @@ const formatSize = (bytes) => {
 const strings = {
     welcome: (name) => 
         `<blockquote>👋 <b>Hello, ${name}!</b></blockquote>\n\n` +
-        `<blockquote>Welcome to <b>SR Meta Bot</b>. Use the buttons below to get information about any user or media.</blockquote>`,
+        `<blockquote>Welcome to <b>TG Meta69 Bot</b>. Use the buttons below to get information about any user or media.</blockquote>`,
     
     help: 
-        `<blockquote>👑 <b>SR Meta Bot - Help Menu</b></blockquote>\n\n` +
+        `<blockquote>👑 <b>TG Meta69 Bot - Help Menu</b></blockquote>\n\n` +
         `<blockquote expandable>📋 <b>User Commands:</b>\n` +
         ` · /start - Start the bot\n` +
         ` · /sr69 - Trigger media lookup via shared link\n` +
@@ -105,7 +105,7 @@ app.get('/sr/:filename', async (req, res) => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Link Expired - SR Meta Bot</title>
+                <title>Link Expired - TG Meta69 Bot</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
                     body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
@@ -141,7 +141,7 @@ app.get('/sr/:filename', async (req, res) => {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>View Media - SR Meta Bot</title>
+            <title>View Media - TG Meta69 Bot</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 15px; box-sizing: border-box; }
@@ -159,7 +159,7 @@ app.get('/sr/:filename', async (req, res) => {
                     ${mediaHtml}
                 </div>
                 <a href="${mediaUrl}" class="download-btn" download>📥 Download File</a>
-                <div class="footer">Powered by SR Meta Bot</div>
+                <div class="footer">Powered by TG Meta69 Bot</div>
             </div>
         </body>
         </html>
@@ -446,7 +446,7 @@ app.post(`/api/webhook`, async (req, res) => {
 
                     if (videoDownloadUrl) {
                         await bot.sendVideo(chatId, videoDownloadUrl, {
-                            caption: `📥 <b>Downloaded via SR Meta Bot</b>\n👨‍💻 Developer: @srshihab69`,
+                            caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
                             parse_mode: 'HTML'
                         });
                         return;
@@ -522,4 +522,4 @@ app.post(`/api/webhook`, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`SR Meta Bot Active on Port ${PORT}`));
+app.listen(PORT, () => console.log(`TG Meta69 Bot Active on Port ${PORT}`));
