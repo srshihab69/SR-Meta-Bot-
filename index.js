@@ -95,12 +95,11 @@ const mainKeyboard = {
     parse_mode: 'HTML'
 };
 
-// Express route for browser media viewer with robust Telegram file URL generation
+// Express route for browser media viewer
 app.get('/sr/:filename', async (req, res) => {
     const filename = req.params.filename;
     let mediaData = mediaStore.get(filename);
 
-    // If media not found in map (due to serverless restart), let's attempt to reconstruct if file_id format allows, or show error
     if (!mediaData || !mediaData.fileId) {
         return res.status(404).send(`
             <!DOCTYPE html>
@@ -124,7 +123,6 @@ app.get('/sr/:filename', async (req, res) => {
         `);
     }
 
-    // Refresh direct Telegram file URL dynamically in case old token path expired
     let mediaUrl = mediaData.url;
     try {
         const fileInfo = await bot.getFile(mediaData.fileId);
@@ -175,7 +173,6 @@ app.get('/sr/:filename', async (req, res) => {
     `);
 });
 
-// Helper function to handle media retrieval from payload/link
 async function handleMediaPayload(chatId, mediaData) {
     if (mediaData) {
         const generatorName = mediaData.user ? (mediaData.user.first_name || 'Unknown User') : 'Unknown User';
@@ -235,10 +232,17 @@ app.post(`/api/webhook`, async (req, res) => {
         const text = msg.text || msg.caption || "";
         const entities = (msg.entities || []).concat(msg.caption_entities || []);
         
-        // Correctly capture hostUrl for Vercel deployment
-        const hostUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.RENDER_EXTERNAL_URL || `http://${req.get('host')}`);
+        // Fixed Host URL detection for Vercel/Render/Local
+        let hostUrl = '';
+        if (process.env.VERCEL_URL) {
+            hostUrl = `https://${process.env.VERCEL_URL}`;
+        } else if (process.env.RENDER_EXTERNAL_URL) {
+            hostUrl = process.env.RENDER_EXTERNAL_URL;
+        } else {
+            const proto = req.headers['x-forwarded-proto'] || req.protocol;
+            hostUrl = `${proto}://${req.get('host')}`;
+        }
 
-        // Handle /start with deep link payload (e.g., /start sr69_xxxx)
         if (text.startsWith('/start')) {
             const parts = text.split(' ');
             if (parts.length > 1 && parts[1].startsWith('sr69_')) {
@@ -324,7 +328,6 @@ app.post(`/api/webhook`, async (req, res) => {
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
         else {
-            // Check if user manually pasted a deep link containing start=sr69_
             const matchParam = text.match(/[?&]start=(sr69_[a-zA-Z0-9]+)/);
             if (matchParam) {
                 const payload = matchParam[1];
