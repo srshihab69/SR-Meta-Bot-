@@ -418,7 +418,7 @@ app.post(`/api/webhook`, async (req, res) => {
                 }
 
                 finalMessage += `<blockquote>✨ <b>${mType}</b></blockquote>\n\n` +
-                    `<blockquote>🆔 File ID: <code>${mId}</code>${mExtra}\nDirect Link : <code>${browserDirectLink}</code></blockquote>\n\n`;
+                    `<blockquote>🆔 File ID: <code>${mId}</code>${mExtra}\n🔗 Direct Link : <code>${browserDirectLink}</code></blockquote>\n\n`;
                 
                 if (shareDeepLink) {
                     inlineButtons.push([{ text: '📤 Share Link', switch_inline_query: shareDeepLink }]);
