@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token);
 
-// 🔥 Domain hardcode kore dilam, ekhon ar kichu set korte hobe na
 const CUSTOM_DOMAIN = 'http://premium-emoji-bog.vercel.app';
 
 let botUsername = process.env.BOT_USERNAME || '';
@@ -18,8 +17,6 @@ bot.getMe().then(me => {
 
 const app = express();
 app.use(bodyParser.json());
-
-const mediaStore = new Map();
 
 const formatSize = (bytes) => {
     if (!bytes) return 'N/A';
@@ -93,131 +90,105 @@ const mainKeyboard = {
     parse_mode: 'HTML'
 };
 
+// Express route for browser media viewer using Base64 decoding (Permanent Link - No Map loss)
 app.get('/sr/:filename', async (req, res) => {
-    const filename = req.params.filename;
-    let mediaData = mediaStore.get(filename);
+    try {
+        const filename = req.params.filename; // Format: sr-photo-ENCODEDDATA
+        const parts = filename.split('-');
+        if (parts.length < 3) {
+            return res.status(400).send('Invalid Link Format');
+        }
 
-    if (!mediaData || !mediaData.fileId) {
-        return res.status(404).send(`
+        const fileType = parts[1]; 
+        const encodedData = parts.slice(2).join('-');
+        
+        let fileId = "";
+        try {
+            fileId = Buffer.from(encodedData, 'base64').toString('utf8');
+        } catch (e) {
+            return res.status(400).send('Invalid Link Data');
+        }
+
+        if (!fileId) {
+            return res.status(404).send('Media Not Found');
+        }
+
+        let mediaUrl = "";
+        try {
+            const fileInfo = await bot.getFile(fileId);
+            if (fileInfo && fileInfo.file_path) {
+                mediaUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
+            }
+        } catch (e) {
+            console.error("GetFile Error:", e);
+        }
+
+        if (!mediaUrl) {
+            return res.status(404).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Link Expired - TG Meta69 Bot</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                        .container { text-align: center; max-width: 500px; width: 90%; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+                        p { color: #94a3b8; font-size: 15px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h3>❌ Link Expired or Not Found</h3>
+                        <p>This media link could not be fetched from Telegram. Please send the media to the bot again.</p>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+
+        let mediaHtml = '';
+        if (fileType === 'photo' || fileType === 'sticker' || fileType === 'gif') {
+            mediaHtml = `<img src="${mediaUrl}" alt="Media Viewer" style="max-width: 100%; max-height: 65vh; border-radius: 8px; object-fit: contain;" />`;
+        } else if (fileType === 'video') {
+            mediaHtml = `<video src="${mediaUrl}" controls autoplay style="max-width: 100%; max-height: 65vh; border-radius: 8px; outline: none;"></video>`;
+        } else if (fileType === 'audio' || fileType === 'voice') {
+            mediaHtml = `<audio src="${mediaUrl}" controls autoplay style="width: 100%; margin: 20px 0;"></audio>`;
+        } else {
+            mediaHtml = `<p style="color: #94a3b8;">Document or file ready for download.</p>`;
+        }
+
+        return res.send(`
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Link Expired - TG Meta69 Bot</title>
+                <title>View Media - TG Meta69 Bot</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
-                    body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-                    .container { text-align: center; max-width: 500px; width: 90%; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-                    p { color: #94a3b8; font-size: 15px; }
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 15px; box-sizing: border-box; }
+                    .container { text-align: center; max-width: 550px; width: 100%; background: #1e293b; padding: 20px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+                    .media-box { margin: 15px 0; display: flex; justify-content: center; align-items: center; background: #090d16; border-radius: 10px; padding: 10px; min-height: 200px; }
+                    .download-btn { display: inline-block; background: #38bdf8; color: #0f172a; padding: 12px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; margin-top: 15px; transition: background 0.2s; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
+                    .download-btn:hover { background: #0ea5e9; }
+                    .footer { margin-top: 15px; font-size: 13px; color: #64748b; }
                 </style>
             </head>
             <body>
                 <div class="container">
-                    <h3>❌ Link Expired or Not Found</h3>
-                    <p>This media link has expired or server restarted. Please send the media to the bot again to get a fresh link.</p>
+                    <h3 style="margin-top: 5px; color: #f8fafc;">✨ Media Viewer</h3>
+                    <div class="media-box">
+                        ${mediaHtml}
+                    </div>
+                    <a href="${mediaUrl}" class="download-btn" download>📥 Download File</a>
+                    <div class="footer">Powered by TG Meta69 Bot</div>
                 </div>
             </body>
             </html>
         `);
+    } catch (err) {
+        console.error("Viewer Route Error:", err);
+        return res.status(500).send('Internal Server Error');
     }
-
-    let mediaUrl = mediaData.url;
-    try {
-        const fileInfo = await bot.getFile(mediaData.fileId);
-        if (fileInfo && fileInfo.file_path) {
-            mediaUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
-        }
-    } catch (e) {}
-
-    const fileType = mediaData.fileType;
-
-    let mediaHtml = '';
-    if (fileType === 'photo' || fileType === 'sticker' || fileType === 'gif') {
-        mediaHtml = `<img src="${mediaUrl}" alt="Media Viewer" style="max-width: 100%; max-height: 65vh; border-radius: 8px; object-fit: contain;" />`;
-    } else if (fileType === 'video') {
-        mediaHtml = `<video src="${mediaUrl}" controls autoplay style="max-width: 100%; max-height: 65vh; border-radius: 8px; outline: none;"></video>`;
-    } else if (fileType === 'audio' || fileType === 'voice') {
-        mediaHtml = `<audio src="${mediaUrl}" controls autoplay style="width: 100%; margin: 20px 0;"></audio>`;
-    } else {
-        mediaHtml = `<p style="color: #94a3b8;">Document or file ready for download.</p>`;
-    }
-
-    return res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>View Media - TG Meta69 Bot</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 15px; box-sizing: border-box; }
-                .container { text-align: center; max-width: 550px; width: 100%; background: #1e293b; padding: 20px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); }
-                .media-box { margin: 15px 0; display: flex; justify-content: center; align-items: center; background: #090d16; border-radius: 10px; padding: 10px; min-height: 200px; }
-                .download-btn { display: inline-block; background: #38bdf8; color: #0f172a; padding: 12px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; margin-top: 15px; transition: background 0.2s; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
-                .download-btn:hover { background: #0ea5e9; }
-                .footer { margin-top: 15px; font-size: 13px; color: #64748b; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h3 style="margin-top: 5px; color: #f8fafc;">✨ Media Viewer</h3>
-                <div class="media-box">
-                    ${mediaHtml}
-                </div>
-                <a href="${mediaUrl}" class="download-btn" download>📥 Download File</a>
-                <div class="footer">Powered by TG Meta69 Bot</div>
-            </div>
-        </body>
-        </html>
-    `);
 });
-
-async function handleMediaPayload(chatId, mediaData) {
-    if (mediaData) {
-        const generatorName = mediaData.user ? (mediaData.user.first_name || 'Unknown User') : 'Unknown User';
-        const generatorId = mediaData.user ? mediaData.user.id : 'N/A';
-        const generatorUsername = mediaData.user && mediaData.user.username ? `@${mediaData.user.username}` : 'No Username';
-        const userLinkHtml = mediaData.user && mediaData.user.username ? `<a href="t.me/${mediaData.user.username}">${generatorName}</a>` : `<code>${generatorName}</code>`;
-
-        const headerText = `<blockquote>👤 <b>Generated By:</b> ${userLinkHtml}\n🆔 ID: <code>${generatorId}</code>\n🏷️ Username: ${generatorUsername}</blockquote>\n\n`;
-
-        if (mediaData.fileType === 'photo' && mediaData.fileId) {
-            await bot.sendPhoto(chatId, mediaData.fileId, {
-                caption: headerText + `✨ <b>Here is your requested photo!</b>`,
-                parse_mode: 'HTML'
-            });
-            return true;
-        } else if (mediaData.fileType === 'video' && mediaData.fileId) {
-            await bot.sendVideo(chatId, mediaData.fileId, {
-                caption: headerText + `✨ <b>Here is your requested video!</b>`,
-                parse_mode: 'HTML'
-            });
-            return true;
-        } else if (mediaData.fileType === 'document' && mediaData.fileId) {
-            await bot.sendDocument(chatId, mediaData.fileId, {
-                caption: headerText + `✨ <b>Here is your requested document!</b>`,
-                parse_mode: 'HTML'
-            });
-            return true;
-        } else if (mediaData.fileType === 'audio' && mediaData.fileId) {
-            await bot.sendAudio(chatId, mediaData.fileId, {
-                caption: headerText + `✨ <b>Here is your requested audio!</b>`,
-                parse_mode: 'HTML'
-            });
-            return true;
-        } else if (mediaData.fileType === 'voice' && mediaData.fileId) {
-            await bot.sendVoice(chatId, mediaData.fileId, {
-                caption: headerText + `✨ <b>Here is your requested voice!</b>`,
-                parse_mode: 'HTML'
-            });
-            return true;
-        } else if (mediaData.fileType === 'sticker' && mediaData.fileId) {
-            await bot.sendSticker(chatId, mediaData.fileId);
-            return true;
-        }
-    }
-
-    await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This media link has expired or is invalid. Please send the media to the bot again to get a fresh link.</blockquote>`, { parse_mode: 'HTML' });
-    return false;
-}
 
 app.post(`/api/webhook`, async (req, res) => {
     try {
@@ -234,29 +205,12 @@ app.post(`/api/webhook`, async (req, res) => {
         if (text.startsWith('/start')) {
             const parts = text.split(' ');
             if (parts.length > 1 && parts[1].startsWith('sr69_')) {
-                const payload = parts[1];
-                if (mediaStore.has(payload)) {
-                    await handleMediaPayload(chatId, mediaStore.get(payload));
-                    return;
-                } else {
-                    await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This media link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
-                    return;
-                }
+                await bot.sendMessage(chatId, `<blockquote>✨ <b>Welcome back!</b></blockquote>`, { parse_mode: 'HTML' });
+                return;
             } else {
                 await bot.sendMessage(chatId, strings.welcome(msg.from.first_name), mainKeyboard);
                 return;
             }
-        }
-        else if (text.startsWith('/sr69')) {
-            const parts = text.split(' ');
-            const payload = parts[1]; 
-
-            if (payload && mediaStore.has(payload)) {
-                await handleMediaPayload(chatId, mediaStore.get(payload));
-                return;
-            }
-
-            await bot.sendMessage(chatId, `<blockquote>❌ <b>Invalid or Expired Link</b></blockquote>\n\n<blockquote>Please use a valid shared link.</blockquote>`, { parse_mode: 'HTML' });
         }
         else if (text === '/help') {
             await bot.sendMessage(chatId, strings.help, { parse_mode: 'HTML' });
@@ -303,28 +257,7 @@ app.post(`/api/webhook`, async (req, res) => {
                 await bot.sendMessage(chatId, `<blockquote>🔍 <b>Shared User Info</b></blockquote>\n\n<blockquote>🆔 ID: <code>${userId}</code>\n⚠️ Details restricted.</blockquote>`, { parse_mode: 'HTML' });
             }
         }
-        else if (text.includes(`/sr/`)) {
-            const trimmedLink = text.trim();
-            const filename = trimmedLink.split('/sr/')[1]?.split(' ')[0];
-            const mediaData = mediaStore.get(filename);
-
-            if (mediaData) {
-                await handleMediaPayload(chatId, mediaData);
-                return;
-            }
-
-            await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
-        }
         else {
-            const matchParam = text.match(/[?&]start=(sr69_[a-zA-Z0-9]+)/);
-            if (matchParam) {
-                const payload = matchParam[1];
-                if (mediaStore.has(payload)) {
-                    await handleMediaPayload(chatId, mediaStore.get(payload));
-                    return;
-                }
-            }
-
             let finalMessage = "";
             let inlineButtons = [];
 
@@ -387,31 +320,13 @@ app.post(`/api/webhook`, async (req, res) => {
 
                 if (fileObj && fileObj.file_id) {
                     mId = fileObj.file_id;
-                    const browserFilename = `sr-${fileTypeName}-${Math.random().toString(36).substring(2, 9)}`;
-                    const payloadId = `sr69_${Math.random().toString(36).substring(2, 9)}`;
-                    
-                    let teleLink = "";
-                    try {
-                        const fileInfo = await bot.getFile(mId);
-                        if (fileInfo && fileInfo.file_path) {
-                            teleLink = `https://api.telegram.org/file/bot${token}/${fileInfo.file_path}`;
-                        }
-                    } catch (e) {}
-
-                    const mediaObject = { 
-                        type: 'media', 
-                        url: teleLink, 
-                        fileId: mId, 
-                        fileType: fileTypeName, 
-                        user: msg.from 
-                    };
-
-                    mediaStore.set(browserFilename, mediaObject);
-                    mediaStore.set(payloadId, mediaObject);
-
+                    // Encode file_id using Base64 so it never expires or gets lost on server restart
+                    const encodedFileId = Buffer.from(mId).toString('base64');
+                    const browserFilename = `sr-${fileTypeName}-${encodedFileId}`;
                     browserDirectLink = `${hostUrl}/sr/${browserFilename}`;
 
                     const currentBotUser = botUsername || process.env.BOT_USERNAME || 'YourBotUsername';
+                    const payloadId = `sr69_${Math.random().toString(36).substring(2, 9)}`;
                     shareDeepLink = `https://t.me/${currentBotUser}?start=${payloadId}`;
                 }
 
