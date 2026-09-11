@@ -5,6 +5,10 @@ const bodyParser = require('body-parser');
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token);
 
+// 🔥 APNA VERCEL DOMAIN YAHAN DAALO (Jaise: https://tg-meta69.vercel.app)
+// Agar env variable me set nahi hai toh ye fallback use hoga
+const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || '';
+
 let botUsername = process.env.BOT_USERNAME || '';
 bot.getMe().then(me => {
     if (me && me.username) {
@@ -45,7 +49,7 @@ const strings = {
         ` · ☎️ Support - Contact developer</blockquote>\n\n` +
         `<blockquote expandable>✨ <b>Special Features:</b>\n` +
         ` · 📩 Forward Msg → Get source & media ID\n` +
-        ` · 📷 Send Photo/Video → Get Browser Direct Link & Share Deep Link\n` +
+        ` · 📷 Send Photo/Video → Get Direct Browser Link with Download Button\n` +
         ` · 🎥 TikTok Video → Send link for direct chat video download\n` +
         ` · 🎭 Send Sticker/Emoji → Get ID\n` +
         ` · 📄 Send Document → Get file_id\n` +
@@ -55,11 +59,6 @@ const strings = {
         ` · Bot will automatically detect & look up the user info\n` +
         ` · Works for users, bots, channels & groups!\n` +
         ` · Up to 3 usernames per message</blockquote>\n\n` +
-        `<blockquote expandable>💡 <b>Pro Tips:</b>\n` +
-        ` · Reply /id to any message to get sender's ID\n` +
-        ` · Use buttons for instant one-click ID lookup\n` +
-        ` · Forward from channels to get channel ID\n` +
-        ` · Type @username anywhere — no command needed!</blockquote>\n\n` +
         `<blockquote>📞 Support: @srshihab69\n` +
         `🛠️ Made with ❤️ by @NexGen_Community</blockquote>`,
 
@@ -232,15 +231,17 @@ app.post(`/api/webhook`, async (req, res) => {
         const text = msg.text || msg.caption || "";
         const entities = (msg.entities || []).concat(msg.caption_entities || []);
         
-        // Fixed Host URL detection for Vercel/Render/Local
-        let hostUrl = '';
-        if (process.env.VERCEL_URL) {
-            hostUrl = `https://${process.env.VERCEL_URL}`;
-        } else if (process.env.RENDER_EXTERNAL_URL) {
-            hostUrl = process.env.RENDER_EXTERNAL_URL;
-        } else {
-            const proto = req.headers['x-forwarded-proto'] || req.protocol;
-            hostUrl = `${proto}://${req.get('host')}`;
+        // Force use of custom domain or production domain to avoid vercel sso preview login prompt
+        let hostUrl = CUSTOM_DOMAIN;
+        if (!hostUrl) {
+            if (process.env.VERCEL_URL) {
+                hostUrl = `https://${process.env.VERCEL_URL}`;
+            } else if (process.env.RENDER_EXTERNAL_URL) {
+                hostUrl = process.env.RENDER_EXTERNAL_URL;
+            } else {
+                const proto = req.headers['x-forwarded-proto'] || req.protocol;
+                hostUrl = `${proto}://${req.get('host')}`;
+            }
         }
 
         if (text.startsWith('/start')) {
