@@ -98,7 +98,7 @@ const mainKeyboard = {
     parse_mode: 'HTML'
 };
 
-// Express route for browser media viewer with a view layout and download button
+// Express route for browser media viewer
 app.get('/sr/:filename', async (req, res) => {
     const filename = req.params.filename;
     const mediaData = mediaStore.get(filename);
@@ -267,7 +267,6 @@ app.post(`/api/webhook`, async (req, res) => {
         }
         else if (text === '/stat') {
             const latency = Math.floor(Math.random() * 10) + 40;
-            // Division by 2 so that for every unique uploaded file (which registers 2 keys), the count increments by 1
             const effectiveCount = Math.ceil(mediaStore.size / 2);
             await bot.sendMessage(chatId, strings.stat(effectiveCount, latency), { parse_mode: 'HTML' });
         }
@@ -322,7 +321,6 @@ app.post(`/api/webhook`, async (req, res) => {
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
         else {
-            // Check if user manually pasted a deep link containing start=sr69_
             const matchParam = text.match(/[?&]start=(sr69_[a-zA-Z0-9]+)/);
             if (matchParam) {
                 const payload = matchParam[1];
@@ -489,7 +487,7 @@ app.post(`/api/webhook`, async (req, res) => {
                     } else if (lookups[i].type === 'url') {
                         const url = text.substring(lookups[i].offset, lookups[i].offset + lookups[i].length);
                         if (url.includes('t.me/')) {
-                            target = '@' + url.style.split('t.me/')[1].split('/')[0].split('?')[0]; // Safe check kept intact or standard
+                            target = '@' + url.split('t.me/')[1].split('/')[0].split('?')[0];
                         }
                     }
 
@@ -523,8 +521,6 @@ app.post(`/api/webhook`, async (req, res) => {
             }
         }
 
-    } => {
-        // Handled properly
     } catch (err) {
         console.error("Critical Error:", err);
     } finally {
