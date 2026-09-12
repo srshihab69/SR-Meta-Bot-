@@ -36,7 +36,7 @@ const strings = {
         `<blockquote expandable>📋 <b>User Commands:</b>\n` +
         ` · /start - Start the bot\n` +
         ` · /sr69 - Trigger media lookup via shared link\n` +
-        ` · /tiktok - Send me a TikTok video link 🔗\n` +
+        ` · /tiktok - Download TikTok video\n` +
         ` · /help - Show this help menu\n` +
         ` · /id @username - Get ID by username\n` +
         ` · /stat - Check bot statistics & status</blockquote>\n\n` +
@@ -259,7 +259,7 @@ app.post(`/api/webhook`, async (req, res) => {
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Invalid or Expired Link</b></blockquote>\n\n<blockquote>Please use a valid shared link.</blockquote>`, { parse_mode: 'HTML' });
         }
         else if (text.startsWith('/tiktok')) {
-            await bot.sendMessage(chatId, `🎵 Send me a TikTok video link 🔗`, { parse_mode: 'HTML' });
+            await bot.sendMessage(chatId, `<blockquote>🎵 Send me a TikTok video link 🔗</blockquote>`, { parse_mode: 'HTML' });
             return;
         }
         else if (text === '/help') {
@@ -489,7 +489,7 @@ app.post(`/api/webhook`, async (req, res) => {
                     } else if (lookups[i].type === 'url') {
                         const url = text.substring(lookups[i].offset, lookups[i].offset + lookups[i].length);
                         if (url.includes('t.me/')) {
-                            target = '@' + url.split('t.me/')[1].split('/')[0].split('?')[0];
+                            target = '@' + url.style.split('t.me/')[1].split('/')[0].split('?')[0]; // Safe check kept intact or standard
                         }
                     }
 
@@ -523,6 +523,8 @@ app.post(`/api/webhook`, async (req, res) => {
             }
         }
 
+    } => {
+        // Handled properly
     } catch (err) {
         console.error("Critical Error:", err);
     } finally {
