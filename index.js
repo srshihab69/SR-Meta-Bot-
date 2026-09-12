@@ -98,7 +98,7 @@ const mainKeyboard = {
     parse_mode: 'HTML'
 };
 
-// Express route for browser media viewer
+// Express route for browser media viewer with a view layout and download button
 app.get('/sr/:filename', async (req, res) => {
     const filename = req.params.filename;
     const mediaData = mediaStore.get(filename);
@@ -258,17 +258,56 @@ app.post(`/api/webhook`, async (req, res) => {
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Invalid or Expired Link</b></blockquote>\n\n<blockquote>Please use a valid shared link.</blockquote>`, { parse_mode: 'HTML' });
         }
-        else if (text.startsWith('/tiktok')) {
-            await bot.sendMessage(chatId, `<blockquote>🎵 Send me a TikTok video link 🔗</blockquote>`, { parse_mode: 'HTML' });
-            return;
-        }
         else if (text === '/help') {
             await bot.sendMessage(chatId, strings.help, { parse_mode: 'HTML' });
         }
         else if (text === '/stat') {
             const latency = Math.floor(Math.random() * 10) + 40;
+            // Division by 2 so that for every unique uploaded file (which registers 2 keys), the count increments by 1
             const effectiveCount = Math.ceil(mediaStore.size / 2);
             await bot.sendMessage(chatId, strings.stat(effectiveCount, latency), { parse_mode: 'HTML' });
+        }
+        else if (text.startsWith('/tiktok')) {
+            const args = text.split(' ');
+            if (args.length > 1) {
+                const targetUrl = args[1];
+                let videoDownloadUrl = "";
+
+                try {
+                    const processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
+
+                    const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                        }
+                    });
+                    const apiData = await apiRes.json();
+                    
+                    if (apiData && apiData.code === 0 && apiData.data) {
+                        videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
+                    }
+
+                    await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
+
+                    if (videoDownloadUrl) {
+                        await bot.sendVideo(chatId, videoDownloadUrl, {
+                            caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
+                            parse_mode: 'HTML'
+                        });
+                        return;
+                    } else {
+                        await bot.sendMessage(chatId, `❌ <b>Could not extract direct video URL. Make sure the TikTok video is Public.</b>`, { parse_mode: 'HTML' });
+                        return;
+                    }
+                } catch (apiErr) {
+                    console.error("Social Video Send Error:", apiErr);
+                    await bot.sendMessage(chatId, `❌ <b>An error occurred while processing the video.</b>`, { parse_mode: 'HTML' });
+                    return;
+                }
+            } else {
+                await bot.sendMessage(chatId, `<blockquote>🎵 Send me a TikTok video link 🔗</blockquote>`, { parse_mode: 'HTML' });
+                return;
+            }
         }
         else if (text.startsWith('/id')) {
             const args = text.split(' ');
@@ -321,6 +360,7 @@ app.post(`/api/webhook`, async (req, res) => {
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
         else {
+            // Check if user manually pasted a deep link containing start=sr69_
             const matchParam = text.match(/[?&]start=(sr69_[a-zA-Z0-9]+)/);
             if (matchParam) {
                 const payload = matchParam[1];
