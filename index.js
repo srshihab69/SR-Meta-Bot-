@@ -73,7 +73,7 @@ const strings = {
         `⚙️ Version: <code>${process.version}</code></blockquote>`,
 
     id_err: 
-        `<blockquote>❌ <b>Command Error</b></blockquote>\n\n` +
+        `<blockquote>ℹ️ <b>Use this command</b></blockquote>\n\n` +
         `<blockquote>Please use the command like this:\n` +
         ` · /id @username\n` +
         ` · Or reply to a message with /id</blockquote>`,
