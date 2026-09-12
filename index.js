@@ -1,4 +1,4 @@
-const TeleggggvvbvramBot = require('node-telegram-bot-api');
+const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const bodyParser = require('body-parser');
 
@@ -36,7 +36,6 @@ const strings = {
         `<blockquote expandable>📋 <b>User Commands:</b>\n` +
         ` · /start - Start the bot\n` +
         ` · /sr69 - Trigger media lookup via shared link\n` +
-        ` · /tiktok - Download TikTok video\n` +
         ` · /help - Show this help menu\n` +
         ` · /id @username - Get ID by username\n` +
         ` · /stat - Check bot statistics & status</blockquote>\n\n` +
@@ -266,48 +265,6 @@ app.post(`/api/webhook`, async (req, res) => {
             // Division by 2 so that for every unique uploaded file (which registers 2 keys), the count increments by 1
             const effectiveCount = Math.ceil(mediaStore.size / 2);
             await bot.sendMessage(chatId, strings.stat(effectiveCount, latency), { parse_mode: 'HTML' });
-        }
-        else if (text.startsWith('/tiktok')) {
-            const parts = text.split(/\s+/);
-            const targetUrl = parts.find(word => word.startsWith('http://') || word.startsWith('https://'));
-
-            if (!targetUrl) {
-                await bot.sendMessage(chatId, `<blockquote>🎵 Send me a TikTok video link 🔗</blockquote>`, { parse_mode: 'HTML' });
-                return;
-            }
-
-            let videoDownloadUrl = "";
-            try {
-                const processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
-
-                const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-                    }
-                });
-                const apiData = await apiRes.json();
-                
-                if (apiData && apiData.code === 0 && apiData.data) {
-                    videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
-                }
-
-                await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
-
-                if (videoDownloadUrl) {
-                    await bot.sendVideo(chatId, videoDownloadUrl, {
-                        caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
-                        parse_mode: 'HTML'
-                    });
-                    return;
-                } else {
-                    await bot.sendMessage(chatId, `❌ <b>Could not extract direct video URL. Make sure the TikTok video is Public.</b>`, { parse_mode: 'HTML' });
-                    return;
-                }
-            } catch (apiErr) {
-                console.error("Social Video Send Error:", apiErr);
-                await bot.sendMessage(chatId, `❌ <b>An error occurred while processing the video.</b>`, { parse_mode: 'HTML' });
-                return;
-            }
         }
         else if (text.startsWith('/id')) {
             const args = text.split(' ');
