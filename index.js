@@ -268,44 +268,44 @@ app.post(`/api/webhook`, async (req, res) => {
             await bot.sendMessage(chatId, strings.stat(effectiveCount, latency), { parse_mode: 'HTML' });
         }
         else if (text.startsWith('/tiktok')) {
-            const args = text.split(' ');
-            if (args.length > 1) {
-                const targetUrl = args[1];
-                let videoDownloadUrl = "";
+            const parts = text.split(/\s+/);
+            const targetUrl = parts.find(word => word.startsWith('http://') || word.startsWith('https://'));
 
-                try {
-                    const processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
+            if (!targetUrl) {
+                await bot.sendMessage(chatId, `<blockquote>🎵 Send me a TikTok video link 🔗</blockquote>`, { parse_mode: 'HTML' });
+                return;
+            }
 
-                    const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-                        }
+            let videoDownloadUrl = "";
+            try {
+                const processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
+
+                const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                    }
+                });
+                const apiData = await apiRes.json();
+                
+                if (apiData && apiData.code === 0 && apiData.data) {
+                    videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
+                }
+
+                await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
+
+                if (videoDownloadUrl) {
+                    await bot.sendVideo(chatId, videoDownloadUrl, {
+                        caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
+                        parse_mode: 'HTML'
                     });
-                    const apiData = await apiRes.json();
-                    
-                    if (apiData && apiData.code === 0 && apiData.data) {
-                        videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
-                    }
-
-                    await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
-
-                    if (videoDownloadUrl) {
-                        await bot.sendVideo(chatId, videoDownloadUrl, {
-                            caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
-                            parse_mode: 'HTML'
-                        });
-                        return;
-                    } else {
-                        await bot.sendMessage(chatId, `❌ <b>Could not extract direct video URL. Make sure the TikTok video is Public.</b>`, { parse_mode: 'HTML' });
-                        return;
-                    }
-                } catch (apiErr) {
-                    console.error("Social Video Send Error:", apiErr);
-                    await bot.sendMessage(chatId, `❌ <b>An error occurred while processing the video.</b>`, { parse_mode: 'HTML' });
+                    return;
+                } else {
+                    await bot.sendMessage(chatId, `❌ <b>Could not extract direct video URL. Make sure the TikTok video is Public.</b>`, { parse_mode: 'HTML' });
                     return;
                 }
-            } else {
-                await bot.sendMessage(chatId, `<blockquote>🎵 Send me a TikTok video link 🔗</blockquote>`, { parse_mode: 'HTML' });
+            } catch (apiErr) {
+                console.error("Social Video Send Error:", apiErr);
+                await bot.sendMessage(chatId, `❌ <b>An error occurred while processing the video.</b>`, { parse_mode: 'HTML' });
                 return;
             }
         }
