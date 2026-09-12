@@ -36,6 +36,7 @@ const strings = {
         `<blockquote expandable>📋 <b>User Commands:</b>\n` +
         ` · /start - Start the bot\n` +
         ` · /sr69 - Trigger media lookup via shared link\n` +
+        ` · /tiktok - Send me a TikTok video link 🔗\n` +
         ` · /help - Show this help menu\n` +
         ` · /id @username - Get ID by username\n` +
         ` · /stat - Check bot statistics & status</blockquote>\n\n` +
@@ -256,6 +257,10 @@ app.post(`/api/webhook`, async (req, res) => {
             }
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Invalid or Expired Link</b></blockquote>\n\n<blockquote>Please use a valid shared link.</blockquote>`, { parse_mode: 'HTML' });
+        }
+        else if (text.startsWith('/tiktok')) {
+            await bot.sendMessage(chatId, `🎵 Send me a TikTok video link 🔗`, { parse_mode: 'HTML' });
+            return;
         }
         else if (text === '/help') {
             await bot.sendMessage(chatId, strings.help, { parse_mode: 'HTML' });
