@@ -327,6 +327,60 @@ app.post(`/api/webhook`, async (req, res) => {
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
+        // ================= TIKTOK HANDLER FIXED =================
+        else if (text.toLowerCase().includes('tiktok.com') || text.toLowerCase().includes('vm.tiktok.com')) {
+            let videoDownloadUrl = "";
+            let processingMsg = null;
+
+            try {
+                processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
+
+                const words = text.split(/\s+/);
+                let targetUrl = words.find(word => 
+                    (word.startsWith('http://') || word.startsWith('https://')) && 
+                    (word.includes('tiktok.com') || word.includes('vm.tiktok.com')) && 
+                    !word.includes('tiktoklite')
+                ) || words.find(word => word.startsWith('http://') || word.startsWith('https://')) || text.trim();
+
+                console.log("Extracted TikTok Target URL:", targetUrl);
+
+                const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                    }
+                });
+                
+                const apiData = await apiRes.json();
+                console.log("TikWM API Response Data:", JSON.stringify(apiData));
+                
+                if (apiData && apiData.code === 0 && apiData.data) {
+                    videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
+                }
+
+                if (processingMsg) {
+                    await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
+                }
+
+                if (videoDownloadUrl) {
+                    await bot.sendVideo(chatId, videoDownloadUrl, {
+                        caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
+                        parse_mode: 'HTML'
+                    });
+                    return;
+                } else {
+                    await bot.sendMessage(chatId, `<blockquote>⚠️ <b>This link is not supported.</b>\n\n🔗 <b>Please send a valid link and try again.</b> ✅</blockquote>`, { parse_mode: 'HTML' });
+                    return;
+                }
+            } catch (apiErr) {
+                console.error("TikTok Video Send Error:", apiErr);
+                if (processingMsg) {
+                    await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
+                }
+                await bot.sendMessage(chatId, `<blockquote>⚠️ <b>This link is not supported.</b>\n\n🔗 <b>Please send a valid link and try again.</b> ✅</blockquote>`, { parse_mode: 'HTML' });
+                return;
+            }
+        }
+        // ========================================================
         else {
             const matchParam = text.match(/[?&]start=(srmeta_[a-zA-Z0-9]+)/);
             if (matchParam) {
@@ -435,60 +489,6 @@ app.post(`/api/webhook`, async (req, res) => {
                 }
             }
 
-            const lowerText = text.toLowerCase();
-            if (lowerText.includes('tiktok.com') || lowerText.includes('vm.tiktok.com')) {
-                let videoDownloadUrl = "";
-                let processingMsg = null;
-
-                try {
-                    processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
-
-                    const words = text.split(/\s+/);
-                    let targetUrl = words.find(word => 
-                        (word.startsWith('http://') || word.startsWith('https://')) && 
-                        (word.includes('tiktok.com') || word.includes('vm.tiktok.com')) && 
-                        !word.includes('tiktoklite')
-                    ) || words.find(word => word.startsWith('http://') || word.startsWith('https://')) || text.trim();
-
-                    console.log("Extracted TikTok Target URL:", targetUrl);
-
-                    const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-                        }
-                    });
-                    
-                    const apiData = await apiRes.json();
-                    console.log("TikWM API Response Data:", JSON.stringify(apiData));
-                    
-                    if (apiData && apiData.code === 0 && apiData.data) {
-                        videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
-                    }
-
-                    if (processingMsg) {
-                        await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
-                    }
-
-                    if (videoDownloadUrl) {
-                        await bot.sendVideo(chatId, videoDownloadUrl, {
-                            caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
-                            parse_mode: 'HTML'
-                        });
-                        return;
-                    } else {
-                        await bot.sendMessage(chatId, `<blockquote>⚠️ <b>This link is not supported.</b>\n\n🔗 <b>Please send a valid link and try again.</b> ✅</blockquote>`, { parse_mode: 'HTML' });
-                        return;
-                    }
-                } catch (apiErr) {
-                    console.error("TikTok Video Send Error:", apiErr);
-                    if (processingMsg) {
-                        await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
-                    }
-                    await bot.sendMessage(chatId, `<blockquote>⚠️ <b>This link is not supported.</b>\n\n🔗 <b>Please send a valid link and try again.</b> ✅</blockquote>`, { parse_mode: 'HTML' });
-                    return;
-                }
-            }
-
             const customEmojis = entities.filter(e => e.type === 'custom_emoji');
             if (customEmojis.length > 0) {
                 finalMessage += `<blockquote>💎 <b>Premium Emoji Detected</b></blockquote>\n\n<blockquote expandable>`;
@@ -501,7 +501,7 @@ app.post(`/api/webhook`, async (req, res) => {
             const lookups = entities.filter(e => e.type === 'mention' || e.type === 'url');
             if (lookups.length > 0) {
                 let lookupResults = "";
-                let processedTargets = new Set(); // ইউনিক ফিল্টার সেট যাতে ডুপ্লিকেট ইউজারনেম বারবার না আসে
+                let processedTargets = new Set();
 
                 for (let i = 0; i < lookups.length; i++) {
                     let target = "";
