@@ -327,7 +327,7 @@ app.post(`/api/webhook`, async (req, res) => {
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
-        // ================= TIKTOK HANDLER FIXED =================
+        // ================= HIGH FILTERED TIKTOK HANDLER =================
         else if (text.toLowerCase().includes('tiktok.com') || text.toLowerCase().includes('vm.tiktok.com')) {
             let videoDownloadUrl = "";
             let processingMsg = null;
@@ -335,14 +335,19 @@ app.post(`/api/webhook`, async (req, res) => {
             try {
                 processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
 
-                const words = text.split(/\s+/);
-                let targetUrl = words.find(word => 
-                    (word.startsWith('http://') || word.startsWith('https://')) && 
-                    (word.includes('tiktok.com') || word.includes('vm.tiktok.com')) && 
-                    !word.includes('tiktoklite')
-                ) || words.find(word => word.startsWith('http://') || word.startsWith('https://')) || text.trim();
+                // হাই-ফিল্টার লজিক: মেसेज থেকে শুধুমাত্র vm.tiktok.com বা tiktok.com দিয়ে শুরু হওয়া আসল ভিডিও লিংকটি খুঁজে বের করা (tiktoklite বা প্রমোশনাল লিংক বাদ দিয়ে)
+                const urlRegex = /https?:\/\/(?:[a-zA-Z0-9-]+\.)?(?:vm\.tiktok\.com|tiktok\.com)\/[^\s]+/g;
+                const foundUrls = text.match(urlRegex) || [];
+                
+                // যে লিংকটিতে 'tiktoklite' নেই সেটিকে আসল ভিডিও লিংক হিসেবে সিলেক্ট করা
+                let targetUrl = foundUrls.find(url => !url.includes('tiktoklite')) || foundUrls[0] || text.trim();
 
-                console.log("Extracted TikTok Target URL:", targetUrl);
+                // যদি লিংকের সাথে বাড়তি কোনো কোয়েরি বা স্ল্যাশ থাকে তা পরিষ্কার করা
+                if (targetUrl.includes('?')) {
+                    targetUrl = targetUrl.split('?')[0];
+                }
+
+                console.log("Filtered Cleaned TikTok Target URL:", targetUrl);
 
                 const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
                     headers: {
@@ -380,7 +385,7 @@ app.post(`/api/webhook`, async (req, res) => {
                 return;
             }
         }
-        // ========================================================
+        // ===============================================================
         else {
             const matchParam = text.match(/[?&]start=(srmeta_[a-zA-Z0-9]+)/);
             if (matchParam) {
