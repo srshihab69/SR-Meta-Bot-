@@ -47,7 +47,7 @@ const strings = {
         `<blockquote expandable>✨ <b>Special Features:</b>\n` +
         ` · 📩 Forward Msg → Get source & media ID\n` +
         ` · 📷 Send Photo/Video → Get Browser Direct Link & Share Deep Link\n` +
-        ` · 🎥 TikTok Video → Send link for direct chat video download\n` +
+        ` · 🎥 TikTok Video → Send link for direct chat video download (Under 30MB)\n` +
         ` · 🎭 Send Sticker/Emoji → Get ID\n` +
         ` · 📄 Send Document → Get file_id\n` +
         ` · 🎵 Send Audio/Voice → Get file_id</blockquote>\n\n` +
@@ -327,13 +327,13 @@ app.post(`/api/webhook`, async (req, res) => {
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
-        // ================= HIGH FILTERED TIKTOK HANDLER (BUFFER FIXED) =================
+        // ================= HIGH FILTERED TIKTOK HANDLER (30MB LIMIT) =================
         else if (text.toLowerCase().includes('tiktok.com') || text.toLowerCase().includes('vm.tiktok.com')) {
             let videoDownloadUrl = "";
             let processingMsg = null;
 
             try {
-                processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
+                processingMsg = await bot.sendMessage(chatId, `⏳ <b>Processing TikTok link, please wait...</b>`, { parse_mode: 'HTML' });
 
                 const urlRegex = /https?:\/\/(?:[a-zA-Z0-9-]+\.)?(?:vm\.tiktok\.com|tiktok\.com)\/[^\s]+/g;
                 const foundUrls = text.match(urlRegex) || [];
@@ -344,8 +344,6 @@ app.post(`/api/webhook`, async (req, res) => {
                     targetUrl = targetUrl.split('?')[0];
                 }
 
-                console.log("Filtered Cleaned TikTok Target URL:", targetUrl);
-
                 const apiRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
@@ -353,10 +351,9 @@ app.post(`/api/webhook`, async (req, res) => {
                 });
                 
                 const apiData = await apiRes.json();
-                console.log("TikWM API Response Data:", JSON.stringify(apiData));
                 
                 if (apiData && apiData.code === 0 && apiData.data) {
-                    videoDownloadUrl = apiData.data.play || apiData.data.hdplay || "";
+                    videoDownloadUrl = apiData.data.hdplay || apiData.data.play || "";
                 }
 
                 if (processingMsg) {
@@ -364,24 +361,46 @@ app.post(`/api/webhook`, async (req, res) => {
                 }
 
                 if (videoDownloadUrl) {
-                    // ভিডিও লিংক থেকে বাফার (Buffer) তৈরি করে পাঠানো হচ্ছে যাতে TelegramError না আসে
                     const videoRes = await fetch(videoDownloadUrl);
-                    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+                    const arrayBuffer = await videoRes.arrayBuffer();
+                    const videoBuffer = Buffer.from(arrayBuffer);
+                    const sizeInMB = videoBuffer.length / (1024 * 1024);
 
-                    await bot.sendVideo(chatId, videoBuffer, {
-                        caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
-                        parse_mode: 'HTML'
-                    }, {
-                        filename: 'tiktok_video.mp4',
-                        contentType: 'video/mp4'
-                    });
-                    return;
+                    console.log(`TikTok Video Size: ${sizeInMB.toFixed(2)} MB`);
+
+                    // যদি সাইজ ৩০ এমবি বা তার কম হয়, তবে সরাসরি চ্যাটে ভিডিও পাঠিয়ে দিবে
+                    if (sizeInMB <= 30) {
+                        await bot.sendVideo(chatId, videoBuffer, {
+                            caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n📊 Size: <code>${sizeInMB.toFixed(2)} MB</code>\n👨‍💻 Developer: @srshihab69`,
+                            parse_mode: 'HTML'
+                        }, {
+                            filename: 'tiktok_video.mp4',
+                            contentType: 'video/mp4'
+                        });
+                        return;
+                    } else {
+                        // যদি ৩০ এমবির বেশি হয়, তবে ইনলাইন ডাউনলোড বাটন দিয়ে দিবে
+                        await bot.sendMessage(chatId, 
+                            `<blockquote>⚠️ <b>Video is larger than 30MB!</b></blockquote>\n\n` +
+                            `<blockquote>📊 File Size: <code>${sizeInMB.toFixed(2)} MB</code>\n` +
+                            `🔗 Click the button below to download the video directly from the browser. ✅</blockquote>`, 
+                            { 
+                                parse_mode: 'HTML',
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: `📥 Download HD Video (${sizeInMB.toFixed(1)} MB)`, url: videoDownloadUrl }]
+                                    ]
+                                }
+                            }
+                        );
+                        return;
+                    }
                 } else {
                     await bot.sendMessage(chatId, `<blockquote>⚠️ <b>This link is not supported.</b>\n\n🔗 <b>Please send a valid link and try again.</b> ✅</blockquote>`, { parse_mode: 'HTML' });
                     return;
                 }
             } catch (apiErr) {
-                console.error("TikTok Video Send Error:", apiErr);
+                console.error("TikTok Video Error:", apiErr);
                 if (processingMsg) {
                     await bot.deleteMessage(chatId, processingMsg.message_id).catch(() => {});
                 }
