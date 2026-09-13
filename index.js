@@ -29,7 +29,7 @@ const formatSize = (bytes) => {
 const strings = {
     welcome: (name) => 
         `<blockquote>👋 <b>Hello, ${name}!</b></blockquote>\n\n` +
-        `<blockquote>Welcome to <b>TG Meta69 Bot</b>! Welcome to TG Meta69 Bot! Explore user & media information, manage media tools, and download TikTok videos with ease. 🚀</blockquote>`,
+        `<blockquote>Welcome to <b>TG Meta69 Bot</b>! Explore user & media information, manage media tools, and download TikTok videos with ease. 🚀</blockquote>`,
     
     help: 
         `<blockquote>👑 <b>TG Meta69 Bot - Help Menu</b></blockquote>\n\n` +
