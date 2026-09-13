@@ -327,7 +327,7 @@ app.post(`/api/webhook`, async (req, res) => {
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
-        // ================= HIGH FILTERED TIKTOK HANDLER =================
+        // ================= HIGH FILTERED TIKTOK HANDLER (BUFFER FIXED) =================
         else if (text.toLowerCase().includes('tiktok.com') || text.toLowerCase().includes('vm.tiktok.com')) {
             let videoDownloadUrl = "";
             let processingMsg = null;
@@ -335,14 +335,11 @@ app.post(`/api/webhook`, async (req, res) => {
             try {
                 processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video, please wait...</b>`, { parse_mode: 'HTML' });
 
-                // হাই-ফিল্টার লজিক: মেसेज থেকে শুধুমাত্র vm.tiktok.com বা tiktok.com দিয়ে শুরু হওয়া আসল ভিডিও লিংকটি খুঁজে বের করা (tiktoklite বা প্রমোশনাল লিংক বাদ দিয়ে)
                 const urlRegex = /https?:\/\/(?:[a-zA-Z0-9-]+\.)?(?:vm\.tiktok\.com|tiktok\.com)\/[^\s]+/g;
                 const foundUrls = text.match(urlRegex) || [];
                 
-                // যে লিংকটিতে 'tiktoklite' নেই সেটিকে আসল ভিডিও লিংক হিসেবে সিলেক্ট করা
                 let targetUrl = foundUrls.find(url => !url.includes('tiktoklite')) || foundUrls[0] || text.trim();
 
-                // যদি লিংকের সাথে বাড়তি কোনো কোয়েরি বা স্ল্যাশ থাকে তা পরিষ্কার করা
                 if (targetUrl.includes('?')) {
                     targetUrl = targetUrl.split('?')[0];
                 }
@@ -367,9 +364,16 @@ app.post(`/api/webhook`, async (req, res) => {
                 }
 
                 if (videoDownloadUrl) {
-                    await bot.sendVideo(chatId, videoDownloadUrl, {
+                    // ভিডিও লিংক থেকে বাফার (Buffer) তৈরি করে পাঠানো হচ্ছে যাতে TelegramError না আসে
+                    const videoRes = await fetch(videoDownloadUrl);
+                    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+
+                    await bot.sendVideo(chatId, videoBuffer, {
                         caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n👨‍💻 Developer: @srshihab69`,
                         parse_mode: 'HTML'
+                    }, {
+                        filename: 'tiktok_video.mp4',
+                        contentType: 'video/mp4'
                     });
                     return;
                 } else {
@@ -385,7 +389,7 @@ app.post(`/api/webhook`, async (req, res) => {
                 return;
             }
         }
-        // ===============================================================
+        // ==============================================================================
         else {
             const matchParam = text.match(/[?&]start=(srmeta_[a-zA-Z0-9]+)/);
             if (matchParam) {
