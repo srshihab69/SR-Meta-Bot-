@@ -48,7 +48,7 @@ const strings = {
         ` · 📩 Forward Msg → Get source & media ID\n` +
         ` · 📷 Send Photo/Video → Get Browser Direct Link & Share Deep Link\n` +
         ` · 🎥 TikTok Video → Send link for direct chat video download (Under 30MB)\n` +
-        ` · 🎭 Send Sticker/Emoji → Get ID\n` +
+        ` · 🎭 Send Sticker/Emoji → Get ID (Unique)\n` +
         ` · 📄 Send Document → Get file_id\n` +
         ` · 🎵 Send Audio/Voice → Get file_id</blockquote>\n\n` +
         `<blockquote expandable>🔍 <b>Auto-Detect:</b>\n` +
@@ -327,13 +327,14 @@ app.post(`/api/webhook`, async (req, res) => {
 
             await bot.sendMessage(chatId, `<blockquote>❌ <b>Link Expired or Not Found</b></blockquote>\n\n<blockquote>This browser link has expired or is invalid.</blockquote>`, { parse_mode: 'HTML' });
         }
-        // ================= HIGH FILTERED TIKTOK HANDLER (30MB LIMIT) =================
+        // ================= HIGH FILTERED TIKTOK HANDLER (30MB LIMIT + SHORT TEXT) =================
         else if (text.toLowerCase().includes('tiktok.com') || text.toLowerCase().includes('vm.tiktok.com')) {
             let videoDownloadUrl = "";
             let processingMsg = null;
 
             try {
-                processingMsg = await bot.sendMessage(chatId, `⏳ <b>Processing TikTok link, please wait...</b>`, { parse_mode: 'HTML' });
+                // Short single-line processing text
+                processingMsg = await bot.sendMessage(chatId, `⏳ <b>Downloading video...</b>`, { parse_mode: 'HTML' });
 
                 const urlRegex = /https?:\/\/(?:[a-zA-Z0-9-]+\.)?(?:vm\.tiktok\.com|tiktok\.com)\/[^\s]+/g;
                 const foundUrls = text.match(urlRegex) || [];
@@ -368,7 +369,7 @@ app.post(`/api/webhook`, async (req, res) => {
 
                     console.log(`TikTok Video Size: ${sizeInMB.toFixed(2)} MB`);
 
-                    // যদি সাইজ ৩০ এমবি বা তার কম হয়, তবে সরাসরি চ্যাটে ভিডিও পাঠিয়ে দিবে
+                    // If size is 30MB or less, send video directly to chat
                     if (sizeInMB <= 30) {
                         await bot.sendVideo(chatId, videoBuffer, {
                             caption: `📥 <b>Downloaded via TG Meta69 Bot</b>\n📊 Size: <code>${sizeInMB.toFixed(2)} MB</code>\n👨‍💻 Developer: @srshihab69`,
@@ -379,7 +380,7 @@ app.post(`/api/webhook`, async (req, res) => {
                         });
                         return;
                     } else {
-                        // যদি ৩০ এমবির বেশি হয়, তবে ইনলাইন ডাউনলোড বাটন দিয়ে দিবে
+                        // If size is greater than 30MB, send inline button
                         await bot.sendMessage(chatId, 
                             `<blockquote>⚠️ <b>Video is larger than 30MB!</b></blockquote>\n\n` +
                             `<blockquote>📊 File Size: <code>${sizeInMB.toFixed(2)} MB</code>\n` +
@@ -520,8 +521,12 @@ app.post(`/api/webhook`, async (req, res) => {
             const customEmojis = entities.filter(e => e.type === 'custom_emoji');
             if (customEmojis.length > 0) {
                 finalMessage += `<blockquote>💎 <b>Premium Emoji Detected</b></blockquote>\n\n<blockquote expandable>`;
-                customEmojis.forEach((ent, index) => {
-                    finalMessage += `🆔 Emoji ${index + 1} ID: <code>${ent.custom_emoji_id}</code>\n`;
+                
+                // Show unique emojis only once
+                const uniqueEmojiIds = [...new Set(customEmojis.map(e => e.custom_emoji_id))];
+                
+                uniqueEmojiIds.forEach((emojiId, index) => {
+                    finalMessage += `🆔 Emoji ${index + 1} ID: <code>${emojiId}</code>\n`;
                 });
                 finalMessage += `</blockquote>\n\n`;
             }
