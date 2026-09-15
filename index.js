@@ -181,7 +181,7 @@ async function handleMediaPayload(chatId, mediaData) {
 
         if (mediaData.fileType === 'photo' && mediaData.fileId) {
             await bot.sendPhoto(chatId, mediaData.fileId, {
-                caption: headerText + `<blockquote>✨ <b>Here is your requested photo!</blockquote>`,
+                caption: headerText + `✨ <b>Here is your requested photo!</b>`,
                 parse_mode: 'HTML'
             });
             return true;
