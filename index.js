@@ -61,8 +61,8 @@ const strings = {
         ` · Use buttons for instant one-click ID lookup\n` +
         ` · Forward from channels to get channel ID\n` +
         ` · Type @username anywhere — no command needed!</blockquote>\n` +
-        `<blockquote>📞 Support: @srshihab69\n` +
-        `🛠️ Made with ❤️ by @srshihab69</blockquote>`,
+        `<blockquote>📞 Support: @SRModxPremium\n` +
+        `🛠️ Made with ❤️ by @sr_premiumApp</blockquote>`,
 
     stat: (mediaCount, lat) => 
         `<blockquote>📊 <b>Bot Statistics & Status</b></blockquote>\n` +
@@ -181,7 +181,7 @@ async function handleMediaPayload(chatId, mediaData) {
 
         if (mediaData.fileType === 'photo' && mediaData.fileId) {
             await bot.sendPhoto(chatId, mediaData.fileId, {
-                caption: headerText + `✨ <b>Here is your requested photo!</b>`,
+                caption: headerText + `<blockquote>✨ <b>Here is your requested photo!</blockquote>`,
                 parse_mode: 'HTML'
             });
             return true;
